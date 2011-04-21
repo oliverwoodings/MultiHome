@@ -81,11 +81,12 @@ public class MultiHome extends JavaPlugin {
 			else {
 				Home home = (Home) getDatabase().find(Home.class).where().ieq("world", world.getName()).ieq("player", player.getName()).findUnique();
 		        if (home == null) {
-		        	sendMessage(player, "`rYou do not have a home set in world `f" + world.getName());
-		        	sendMessage(player, "`fUse `r/home set`f to set a home");
+		        	sendMessage(player, "`cYou do not have a home set in world `f" + world.getName());
+		        	sendMessage(player, "`fUse `c/home set`f to set a home");
 		        }
 		        else {
 		        	player.teleport(home.getLocation());
+		        	sendMessage(player, "`aWelcome to your home in `f" + world.getName());
 		        }
 			}
 			return true;
