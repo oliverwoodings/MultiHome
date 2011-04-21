@@ -1,0 +1,9 @@
+name: MultiHome
+main: uk.co.oliwali.MultiHome.MultiHome
+author: oliverw92
+version: 0.1
+database: true
+commands:
+  home:
+    description:
+    usage: |
