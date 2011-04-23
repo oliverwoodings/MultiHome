@@ -23,7 +23,7 @@ public class Permission {
         	plugin.sendMessage("info", "Using GroupManager for user permissions");
         }
         else if (permissions != null) {
-        	permissionPlugin = groupManager;
+        	permissionPlugin = permissions;
         	handler = PermissionPlugin.PERMISSIONS;
         	plugin.sendMessage("info", "Using Permissions for user permissions");
         }
