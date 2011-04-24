@@ -1,6 +1,5 @@
 package uk.co.oliwali.MultiHome;
 
-import org.anjocaido.groupmanager.GroupManager;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -14,15 +13,8 @@ public class Permission {
 	
 	public Permission(MultiHome instance) {
 		plugin = instance;
-		Plugin groupManager = plugin.getServer().getPluginManager().getPlugin("GroupManager");
         Plugin permissions = plugin.getServer().getPluginManager().getPlugin("Permissions");
-        
-        if (groupManager != null) {
-        	permissionPlugin = groupManager;
-        	handler = PermissionPlugin.GROUP_MANAGER;
-        	plugin.sendMessage("info", "Using GroupManager for user permissions");
-        }
-        else if (permissions != null) {
+        if (permissions != null) {
         	permissionPlugin = permissions;
         	handler = PermissionPlugin.PERMISSIONS;
         	plugin.sendMessage("info", "Using Permissions for user permissions");
@@ -34,8 +26,6 @@ public class Permission {
 	
 	private boolean hasPermission(Player player, String node) {
 		switch (handler) {
-			case GROUP_MANAGER:
-				return ((GroupManager) permissionPlugin).getWorldsHolder().getWorldPermissions(player).has(player, node);
 			case PERMISSIONS:
 				return ((Permissions) permissionPlugin).getHandler().has(player, node);
 			case OP:
@@ -50,7 +40,6 @@ public class Permission {
 	
 	private enum PermissionPlugin {
 		PERMISSIONS,
-		GROUP_MANAGER,
 		OP
 	}
 
