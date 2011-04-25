@@ -62,12 +62,12 @@ public class MultiHome extends JavaPlugin {
 				if (command.equalsIgnoreCase("set")) {
 					Home home = getDatabase().find(Home.class).where().ieq("world", world.getName()).ieq("player", player.getName()).findUnique();
 			        
-					if (home != null) {
+					if (home == null) {
 						home = new Home();
 						home.setPlayer(player.getName());
 					}
 					
-			        home.setLocation(player.getLocation());
+					home.setLocation(player.getLocation());					
 			        getDatabase().save(home);
 			        sendMessage(player, "`aYour home has been set in world `f" + world.getName());
 				}
