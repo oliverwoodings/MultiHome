@@ -1,5 +1,6 @@
 package uk.co.oliwali.MultiHome;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -7,7 +8,6 @@ import java.util.logging.Logger;
 import javax.persistence.PersistenceException;
 
 import org.bukkit.ChatColor;
-import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -52,7 +52,8 @@ public class MultiHome extends JavaPlugin {
 		
 		String prefix = cmd.getName();
 		Player player = (Player) sender;
-		World world   = player.getWorld();
+		String name   = player.getName();
+		String world  = player.getWorld().getName();
 		
 		if (prefix.equalsIgnoreCase("home") && permissions.home(player)) {
 			if (args.length > 0) {
@@ -60,35 +61,50 @@ public class MultiHome extends JavaPlugin {
 				
 				//Setting home
 				if (command.equalsIgnoreCase("set")) {
-					Home home = getDatabase().find(Home.class).where().ieq("world", world.getName()).ieq("player", player.getName()).findUnique();
+					Home home = getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
 			        
-					if (home == null) {
-						home = new Home();
-						home.setPlayer(player.getName());
-					}
+					if (home != null)
+						getDatabase().createSqlUpdate("DELETE FROM multihome WHERE world='" + world + "' AND player='" + name + "'").execute();
 					
+					home = new Home();
+					home.setPlayer(name);
 					home.setLocation(player.getLocation());					
 			        getDatabase().save(home);
-			        sendMessage(player, "`aYour home has been set in world `f" + world.getName());
+			        sendMessage(player, "`aYour home has been set in `7" + world);
+				}
+				
+				//List homes
+				else if (command.equalsIgnoreCase("list")) {
+					DecimalFormat round = new DecimalFormat("#,##0.0");
+					List<Home> homes = getDatabase().find(Home.class).where().ieq("player", name).findList();
+					if (homes.isEmpty()) {
+						sendMessage(player, "`cYou do not have any homes set");
+			        	sendMessage(player, "`7Use `c/home set`7 to set a home");
+					}
+					else {
+						sendMessage(player, "`aList of homes for: `7" + name);
+						for (Home home : homes.toArray(new Home[0]))
+							sendMessage(player, "`aWorld:`7 " + home.getWorld() + " `aLocation:`7 " + round.format(home.getX()) + ", " + round.format(home.getY()) + ", " + round.format(home.getZ()));
+					}
 				}
 				
 				//Get help
 				else if (command.equalsIgnoreCase("help")) {
 					sendMessage(player, "`a--------------------`f MultiHome `a--------------------");
-					sendMessage(player, "`a/home`f - Go to your home in the world you are in");
-					sendMessage(player, "`a/home set`f - Set your home in the world you are in");
+					sendMessage(player, "`a/home`7 - Go to your home in the world you are in");
+					sendMessage(player, "`a/home set`7 - Set your home in the world you are in");
 				}
 			}
 			//Go home
 			else {
-				Home home = (Home) getDatabase().find(Home.class).where().ieq("world", world.getName()).ieq("player", player.getName()).findUnique();
+				Home home = (Home) getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
 		        if (home == null) {
-		        	sendMessage(player, "`cYou do not have a home set in world `f" + world.getName());
-		        	sendMessage(player, "`fUse `c/home set`f to set a home");
+		        	sendMessage(player, "`cYou do not have a home set in `7" + world);
+		        	sendMessage(player, "`7Use `c/home set`7 to set a home");
 		        }
 		        else {
 		        	player.teleport(home.getLocation());
-		        	sendMessage(player, "`aWelcome to your home in `f" + world.getName());
+		        	sendMessage(player, "`aWelcome to your home in `7" + world);
 		        }
 			}
 			return true;
