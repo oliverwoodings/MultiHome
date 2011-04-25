@@ -17,10 +17,10 @@ public class Permission {
         if (permissions != null) {
         	permissionPlugin = permissions;
         	handler = PermissionPlugin.PERMISSIONS;
-        	plugin.sendMessage("info", "Using Permissions for user permissions");
+        	Util.info("Using Permissions for user permissions");
         }
         else {
-        	plugin.sendMessage("info", "No permission handler detected, only ops can use home commands");
+        	Util.info("No permission handler detected, only ops can use home commands");
         }
 	}
 	
@@ -36,6 +36,10 @@ public class Permission {
 	
 	public boolean home(Player player) {
 		return hasPermission(player, "multihome.home");
+	}
+	
+	public boolean admin(Player player) {
+		return hasPermission(player, "multihome.admin");
 	}
 	
 	private enum PermissionPlugin {

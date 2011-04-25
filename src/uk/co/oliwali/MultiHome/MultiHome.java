@@ -3,11 +3,10 @@ package uk.co.oliwali.MultiHome;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 import javax.persistence.PersistenceException;
 
-import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -17,19 +16,20 @@ public class MultiHome extends JavaPlugin {
 	
 	public String name;
 	public String version;
-	public static final Logger log = Logger.getLogger("Minecraft");
 	private Permission permissions;
+	public Config config;
 
 	public void onDisable() {
-		sendMessage("info", "Version " + version + " disabled!");
+		Util.info("Version " + version + " disabled!");
 	}
 
 	public void onEnable() {
 		name = this.getDescription().getName();
         version = this.getDescription().getVersion();
+        config = new Config(this);
         permissions = new Permission(this);
         setupDatabase();
-        sendMessage("info", "Version " + version + " enabled!");
+        Util.info("Version " + version + " enabled!");
 	}
 	
 	private void setupDatabase() {
@@ -54,6 +54,7 @@ public class MultiHome extends JavaPlugin {
 		Player player = (Player) sender;
 		String name   = player.getName();
 		String world  = player.getWorld().getName();
+		Home home;
 		
 		if (prefix.equalsIgnoreCase("home") && permissions.home(player)) {
 			if (args.length > 0) {
@@ -61,7 +62,7 @@ public class MultiHome extends JavaPlugin {
 				
 				//Setting home
 				if (command.equalsIgnoreCase("set")) {
-					Home home = getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
+					home = getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
 			        
 					if (home != null)
 						getDatabase().createSqlUpdate("DELETE FROM multihome WHERE world='" + world + "' AND player='" + name + "'").execute();
@@ -70,7 +71,7 @@ public class MultiHome extends JavaPlugin {
 					home.setPlayer(name);
 					home.setLocation(player.getLocation());					
 			        getDatabase().save(home);
-			        sendMessage(player, "`aYour home has been set in `7" + world);
+			        Util.sendMessage(player, "&aYour home has been set in &7" + config.getAlias(world));
 				}
 				
 				//List homes
@@ -78,34 +79,66 @@ public class MultiHome extends JavaPlugin {
 					DecimalFormat round = new DecimalFormat("#,##0.0");
 					List<Home> homes = getDatabase().find(Home.class).where().ieq("player", name).findList();
 					if (homes.isEmpty()) {
-						sendMessage(player, "`cYou do not have any homes set");
-			        	sendMessage(player, "`7Use `c/home set`7 to set a home");
+						Util.sendMessage(player, "&cYou do not have any homes set");
+			        	Util.sendMessage(player, "&7Use &c/home set&7 to set a home");
 					}
 					else {
-						sendMessage(player, "`aList of homes for: `7" + name);
-						for (Home home : homes.toArray(new Home[0]))
-							sendMessage(player, "`aWorld:`7 " + home.getWorld() + " `aLocation:`7 " + round.format(home.getX()) + ", " + round.format(home.getY()) + ", " + round.format(home.getZ()));
+						Util.sendMessage(player, "&aList of homes for: &7" + name);
+						for (Home playerHome : homes.toArray(new Home[0]))
+							Util.sendMessage(player, "&aWorld:&7 " + config.getAlias(playerHome.getWorld()) + " &aLocation:&7 " + round.format(playerHome.getX()) + ", " + round.format(playerHome.getY()) + ", " + round.format(playerHome.getZ()));
 					}
 				}
 				
 				//Get help
 				else if (command.equalsIgnoreCase("help")) {
-					sendMessage(player, "`a--------------------`f MultiHome `a--------------------");
-					sendMessage(player, "`a/home`7 - Go to your home in the world you are in");
-					sendMessage(player, "`a/home set`7 - Set your home in the world you are in");
+					Util.sendMessage(player, "&a--------------------&f MultiHome &a--------------------");
+					Util.sendMessage(player, "&a/home&7 - Go to your home in the world you are in");
+					Util.sendMessage(player, "&a/home <world> - Go to your home in the specified world");
+					Util.sendMessage(player, "&a/home set&7 - Set your home in the world you are in");
+					Util.sendMessage(player, "&a/home list&7 - List all homes you have set");
+					if (permissions.admin(player))
+						Util.sendMessage(player, "&a/home player <player> [world]&7 - Go to a player's home in a world");
 				}
+				
+				//Go to another players home
+				else if (command.equalsIgnoreCase("player") && permissions.admin(player)) {
+					if (args.length > 1) {
+						String homePlayer = args[1];
+						//World specified?
+						if (args.length > 2)
+							world = args[2];
+						home = getDatabase().find(Home.class).where().ieq("player", homePlayer).ieq("world", config.getWorld(world)).findUnique();
+						if (home == null)
+							Util.sendMessage(player, "&c" + homePlayer + " does not have a home set in &7" + config.getAlias(world));
+						else
+							goHome(player, home);
+					}
+					else
+						Util.sendMessage(player, "&cPlease provide the name of a player to go to their home!");
+				}
+				
+				//Go home in specified world
+				else {
+					home = getDatabase().find(Home.class).where().ieq("player", name).ieq("world", config.getWorld(args[0])).findUnique();
+					if (home == null) {
+						Util.sendMessage(player, "&cYou do not have a home set in &7" + config.getAlias(args[0]));
+			        	Util.sendMessage(player, "&7Use &c/home set&7 to set a home");
+					}
+					else
+						goHome(player, home);
+				}
+				
 			}
+			
 			//Go home
 			else {
-				Home home = (Home) getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
+				home = (Home) getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
 		        if (home == null) {
-		        	sendMessage(player, "`cYou do not have a home set in `7" + world);
-		        	sendMessage(player, "`7Use `c/home set`7 to set a home");
+		        	Util.sendMessage(player, "&cYou do not have a home set in &7" + config.getAlias(world));
+		        	Util.sendMessage(player, "&7Use &c/home set&7 to set a home");
 		        }
-		        else {
-		        	player.teleport(home.getLocation());
-		        	sendMessage(player, "`aWelcome to your home in `7" + world);
-		        }
+		        else
+		        	goHome(player, home);
 			}
 			return true;
 			
@@ -113,36 +146,13 @@ public class MultiHome extends JavaPlugin {
 		return false;
 	}
 	
-	public void sendMessage(Player player, String msg) {
-		player.sendMessage(replaceColors(msg));
-	}
-	
-	public void sendMessage(String level, String msg) {
-		msg = "[" + name + "] " + msg;
-		if (level == "info")
-			log.info(msg);
+	private void goHome(Player player, Home home) {
+		Location loc = home.getLocation();
+		player.teleport(loc);
+		if (home.getPlayer().equalsIgnoreCase(player.getName()))
+			Util.sendMessage(player, "&aWelcome to your home in &7" + config.getAlias(loc.getWorld()));
 		else
-			log.severe(msg);
+			Util.sendMessage(player, "&aWelcome to &7" + home.getPlayer() + "&a's home in &7" + config.getAlias(loc.getWorld()));
 	}
-	
-    public String replaceColors(String str) {
-        str = str.replace("`c", ChatColor.RED.toString());
-        str = str.replace("`4", ChatColor.DARK_RED.toString());
-        str = str.replace("`e", ChatColor.YELLOW.toString());
-        str = str.replace("`6", ChatColor.GOLD.toString());
-        str = str.replace("`a", ChatColor.GREEN.toString());
-        str = str.replace("`2", ChatColor.DARK_GREEN.toString());
-        str = str.replace("`b", ChatColor.AQUA.toString());
-        str = str.replace("`8", ChatColor.DARK_AQUA.toString());
-        str = str.replace("`9", ChatColor.BLUE.toString());
-        str = str.replace("`1", ChatColor.DARK_BLUE.toString());
-        str = str.replace("`d", ChatColor.LIGHT_PURPLE.toString());
-        str = str.replace("`5", ChatColor.DARK_PURPLE.toString());
-        str = str.replace("`0", ChatColor.BLACK.toString());
-        str = str.replace("`8", ChatColor.DARK_GRAY.toString());
-        str = str.replace("`7", ChatColor.GRAY.toString());
-        str = str.replace("`f", ChatColor.WHITE.toString());
-        return str;
-    }
 
 }
