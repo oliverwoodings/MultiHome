@@ -12,6 +12,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import uk.co.oliwali.DataLog.util.DataLogAPI;
+
 public class MultiHome extends JavaPlugin {
 	
 	public String name;
@@ -149,10 +151,13 @@ public class MultiHome extends JavaPlugin {
 	private void goHome(Player player, Home home) {
 		Location loc = home.getLocation();
 		player.teleport(loc);
-		if (home.getPlayer().equalsIgnoreCase(player.getName()))
+		if (home.getPlayer().equalsIgnoreCase(player.getName())) {
+			DataLogAPI.addEntry(this, "Own Home", player, home.getLocation(), "");
 			Util.sendMessage(player, "&aWelcome to your home in &7" + config.getAlias(loc.getWorld()));
-		else
+		}
+		else {
+			DataLogAPI.addEntry(this, "Other Home", player, home.getLocation(), home.getPlayer());
 			Util.sendMessage(player, "&aWelcome to &7" + home.getPlayer() + "&a's home in &7" + config.getAlias(loc.getWorld()));
+		}
 	}
-
 }
