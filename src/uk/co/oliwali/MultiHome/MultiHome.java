@@ -10,6 +10,7 @@ import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import uk.co.oliwali.DataLog.util.DataLogAPI;
@@ -20,6 +21,7 @@ public class MultiHome extends JavaPlugin {
 	public String version;
 	private Permission permissions;
 	public Config config;
+	private boolean usingDataLog;
 
 	public void onDisable() {
 		Util.info("Version " + version + " disabled!");
@@ -31,6 +33,9 @@ public class MultiHome extends JavaPlugin {
         config = new Config(this);
         permissions = new Permission(this);
         setupDatabase();
+        Plugin dl = getServer().getPluginManager().getPlugin("DataLog");
+        if (dl != null)
+            this.usingDataLog = true;
         Util.info("Version " + version + " enabled!");
 	}
 	
@@ -152,11 +157,11 @@ public class MultiHome extends JavaPlugin {
 		Location loc = home.getLocation();
 		player.teleport(loc);
 		if (home.getPlayer().equalsIgnoreCase(player.getName())) {
-			DataLogAPI.addEntry(this, "Own Home", player, home.getLocation(), "");
+			if (usingDataLog) DataLogAPI.addEntry(this, "Own Home", player, home.getLocation(), "");
 			Util.sendMessage(player, "&aWelcome to your home in &7" + config.getAlias(loc.getWorld()));
 		}
 		else {
-			DataLogAPI.addEntry(this, "Other Home", player, home.getLocation(), home.getPlayer());
+			if (usingDataLog) DataLogAPI.addEntry(this, "Other Home", player, home.getLocation(), home.getPlayer());
 			Util.sendMessage(player, "&aWelcome to &7" + home.getPlayer() + "&a's home in &7" + config.getAlias(loc.getWorld()));
 		}
 	}
