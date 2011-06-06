@@ -11,10 +11,10 @@ public class Util {
 	private static int maxLength = 105;
 	
 	public static void info(String msg) {
-		log.info("[DataLog] " + msg);
+		log.info("[MultiHome] " + msg);
 	}
 	public static void severe(String msg) {
-		log.severe("[DataLog] " + msg);
+		log.severe("[MultiHome] " + msg);
 	}
 	
 	public static void sendMessage(Player player, String msg) {

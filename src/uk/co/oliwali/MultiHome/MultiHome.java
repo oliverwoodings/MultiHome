@@ -34,8 +34,10 @@ public class MultiHome extends JavaPlugin {
         permissions = new Permission(this);
         setupDatabase();
         Plugin dl = getServer().getPluginManager().getPlugin("DataLog");
-        if (dl != null)
-            this.usingDataLog = true;
+        if (dl != null) {
+            usingDataLog = true;
+            Util.info("DataLog detected, logging actions to DataLog database");
+        }
         Util.info("Version " + version + " enabled!");
 	}
 	
@@ -157,11 +159,11 @@ public class MultiHome extends JavaPlugin {
 		Location loc = home.getLocation();
 		player.teleport(loc);
 		if (home.getPlayer().equalsIgnoreCase(player.getName())) {
-			if (usingDataLog) DataLogAPI.addEntry(this, "Own Home", player, home.getLocation(), "");
+			if (usingDataLog) DataLogAPI.addEntry(this, "Home", player, home.getLocation(), "Own");
 			Util.sendMessage(player, "&aWelcome to your home in &7" + config.getAlias(loc.getWorld()));
 		}
 		else {
-			if (usingDataLog) DataLogAPI.addEntry(this, "Other Home", player, home.getLocation(), home.getPlayer());
+			if (usingDataLog) DataLogAPI.addEntry(this, "Home", player, home.getLocation(), "Other - " + home.getPlayer());
 			Util.sendMessage(player, "&aWelcome to &7" + home.getPlayer() + "&a's home in &7" + config.getAlias(loc.getWorld()));
 		}
 	}
