@@ -3,46 +3,47 @@ package uk.co.oliwali.MultiHome;
 import java.util.HashMap;
 
 import org.bukkit.World;
-import org.bukkit.util.config.Configuration;
+import org.bukkit.configuration.Configuration;
 
 public class Config {
 	
-	HashMap<String, String> aliases = new HashMap<String, String>();
+	public static HashMap<String, String> aliases = new HashMap<String, String>();
+	public static HashMap<String, Integer> warmups = new HashMap<String, Integer>();
 	MultiHome plugin;
 	Configuration config;
 
 	public Config (MultiHome instance) {
 		
-		this.plugin = instance;
-		this.config = plugin.getConfiguration();
-		config.load();
-		
-		//If there are no aliases yet
-		if (config.getKeys("aliases") == null) {
-			World[] worlds = (World[]) plugin.getServer().getWorlds().toArray(new World[0]);
-			for (World world : worlds)
-				config.setProperty("aliases." + world.getName(), world.getName());
-		}
+		plugin = instance;
+		config = plugin.getConfig().getRoot();
+		config.options().copyDefaults(true);
+		plugin.saveConfig();
 		
 		//Load aliases into hashmap
-		String[] worlds = (String[]) config.getKeys("aliases").toArray(new String[0]);
+		String[] worlds = (String[]) config.getConfigurationSection("aliases").getKeys(false).toArray(new String[0]);
 		for (String world : worlds)
 			aliases.put(config.getString("aliases." + world), world);
 		
-		//Attempt save
-		if (!config.save())
-			Util.log.severe("Error while writing to config.yml");
-
+		//Load warmup/cooldown
+		worlds = (String[]) config.getConfigurationSection("warmups").getKeys(false).toArray(new String[0]);
+		for (String world : worlds)
+			warmups.put(world.toLowerCase(), config.getInt("warmups." + world));
+		
 	}
 	
-	public String getWorld(String alias) {
+	public static String getWorld(String alias) {
 		String world = aliases.get(alias);
 		if (world == null)
 			return alias;
 		return world;
 	}
 	
-	public String getAlias(String world) {
+	public static int getWarmup(String world) {
+		if (!warmups.containsKey(world.toLowerCase())) return 0;
+		return warmups.get(world.toLowerCase());
+	}
+	
+	public static String getAlias(String world) {
 		int i = 0;
 		for (String value : aliases.values().toArray(new String[0])) {
 			if (value.equalsIgnoreCase(world))
@@ -51,7 +52,7 @@ public class Config {
 		}
 		return world;
 	}
-	public String getAlias(World world) {
+	public static String getAlias(World world) {
 		return getAlias(world.getName());
 	}
 }

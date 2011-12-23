@@ -6,14 +6,12 @@ import java.util.List;
 
 import javax.persistence.PersistenceException;
 
-import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.event.Event.Priority;
+import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import uk.co.oliwali.DataLog.util.DataLogAPI;
 
 public class MultiHome extends JavaPlugin {
 	
@@ -21,7 +19,7 @@ public class MultiHome extends JavaPlugin {
 	public String version;
 	private Permission permissions;
 	public Config config;
-	private boolean usingDataLog;
+	public static List<Warmup> warmups = new ArrayList<Warmup>();
 
 	public void onDisable() {
 		Util.info("Version " + version + " disabled!");
@@ -33,12 +31,9 @@ public class MultiHome extends JavaPlugin {
         config = new Config(this);
         permissions = new Permission(this);
         setupDatabase();
-        Plugin dl = getServer().getPluginManager().getPlugin("DataLog");
-        if (dl != null) {
-            usingDataLog = true;
-            Util.info("DataLog detected, logging actions to DataLog database");
-        }
         Util.info("Version " + version + " enabled!");
+        MHPlayerListener playerListener = new MHPlayerListener();
+        getServer().getPluginManager().registerEvent(Type.PLAYER_MOVE, playerListener, Priority.Highest, this);
 	}
 	
 	private void setupDatabase() {
@@ -80,7 +75,7 @@ public class MultiHome extends JavaPlugin {
 					home.setPlayer(name);
 					home.setLocation(player.getLocation());					
 			        getDatabase().save(home);
-			        Util.sendMessage(player, "&aYour home has been set in &7" + config.getAlias(world));
+			        Util.sendMessage(player, "&aYour home has been set in &7" + Config.getAlias(world));
 				}
 				
 				//List homes
@@ -94,7 +89,7 @@ public class MultiHome extends JavaPlugin {
 					else {
 						Util.sendMessage(player, "&aList of homes for: &7" + name);
 						for (Home playerHome : homes.toArray(new Home[0]))
-							Util.sendMessage(player, "&aWorld:&7 " + config.getAlias(playerHome.getWorld()) + " &aLocation:&7 " + round.format(playerHome.getX()) + ", " + round.format(playerHome.getY()) + ", " + round.format(playerHome.getZ()));
+							Util.sendMessage(player, "&aWorld:&7 " + Config.getAlias(playerHome.getWorld()) + " &aLocation:&7 " + round.format(playerHome.getX()) + ", " + round.format(playerHome.getY()) + ", " + round.format(playerHome.getZ()));
 					}
 				}
 				
@@ -116,11 +111,11 @@ public class MultiHome extends JavaPlugin {
 						//World specified?
 						if (args.length > 2)
 							world = args[2];
-						home = getDatabase().find(Home.class).where().ieq("player", homePlayer).ieq("world", config.getWorld(world)).findUnique();
+						home = getDatabase().find(Home.class).where().ieq("player", homePlayer).ieq("world", Config.getWorld(world)).findUnique();
 						if (home == null)
-							Util.sendMessage(player, "&c" + homePlayer + " does not have a home set in &7" + config.getAlias(world));
+							Util.sendMessage(player, "&c" + homePlayer + " does not have a home set in &7" + Config.getAlias(world));
 						else
-							goHome(player, home);
+							new Warmup(home, player);
 					}
 					else
 						Util.sendMessage(player, "&cPlease provide the name of a player to go to their home!");
@@ -128,13 +123,13 @@ public class MultiHome extends JavaPlugin {
 				
 				//Go home in specified world
 				else {
-					home = getDatabase().find(Home.class).where().ieq("player", name).ieq("world", config.getWorld(args[0])).findUnique();
+					home = getDatabase().find(Home.class).where().ieq("player", name).ieq("world", Config.getWorld(args[0])).findUnique();
 					if (home == null) {
-						Util.sendMessage(player, "&cYou do not have a home set in &7" + config.getAlias(args[0]));
+						Util.sendMessage(player, "&cYou do not have a home set in &7" + Config.getAlias(args[0]));
 			        	Util.sendMessage(player, "&7Use &c/home set&7 to set a home");
 					}
 					else
-						goHome(player, home);
+						new Warmup(home, player);
 				}
 				
 			}
@@ -143,28 +138,17 @@ public class MultiHome extends JavaPlugin {
 			else {
 				home = (Home) getDatabase().find(Home.class).where().ieq("world", world).ieq("player", name).findUnique();
 		        if (home == null) {
-		        	Util.sendMessage(player, "&cYou do not have a home set in &7" + config.getAlias(world));
+		        	Util.sendMessage(player, "&cYou do not have a home set in &7" + Config.getAlias(world));
 		        	Util.sendMessage(player, "&7Use &c/home set&7 to set a home");
 		        }
 		        else
-		        	goHome(player, home);
+		        	new Warmup(home, player);
 			}
 			return true;
 			
 		}
 		return false;
+		
 	}
 	
-	private void goHome(Player player, Home home) {
-		Location loc = home.getLocation();
-		player.teleport(loc);
-		if (home.getPlayer().equalsIgnoreCase(player.getName())) {
-			if (usingDataLog) DataLogAPI.addEntry(this, "Home", player, home.getLocation(), "Own");
-			Util.sendMessage(player, "&aWelcome to your home in &7" + config.getAlias(loc.getWorld()));
-		}
-		else {
-			if (usingDataLog) DataLogAPI.addEntry(this, "Home", player, home.getLocation(), "Other - " + home.getPlayer());
-			Util.sendMessage(player, "&aWelcome to &7" + home.getPlayer() + "&a's home in &7" + config.getAlias(loc.getWorld()));
-		}
-	}
 }
