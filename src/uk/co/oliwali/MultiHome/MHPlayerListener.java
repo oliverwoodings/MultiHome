@@ -1,5 +1,8 @@
 package uk.co.oliwali.MultiHome;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Location;
 import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -8,7 +11,12 @@ public class MHPlayerListener extends PlayerListener {
 	
 	public void onPlayerMove(PlayerMoveEvent event) {
 		if (distance(event.getFrom(), event.getTo()) < 0.1) return;
-		for (Warmup warmup : MultiHome.warmups) { 
+		
+		//Clone warmups to stop concurrent mods
+		List<Warmup> temp = new ArrayList<Warmup>();
+		for (Warmup warmup : MultiHome.warmups) temp.add(warmup);
+		
+		for (Warmup warmup : temp) { 
 			if (warmup.player == event.getPlayer()) {
 				Util.sendMessage(event.getPlayer(), "&cMovement detected - home teleport cancelled!");
 				warmup.timer.cancel();
